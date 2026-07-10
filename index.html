@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Taquería El Sol — Birria Bar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --masa:#FCEFC7; --masa-deep:#F1D58A;
+    --marigold:#F6A21E; --marigold-deep:#E4850C;
+    --chili:#D8402F; --chili-deep:#A82A1E;
+    --lime:#86B93B; --lime-deep:#6C9A2A;
+    --turq:#16A9BE; --turq-deep:#0E8093;
+    --cocoa:#40241B; --cocoa-soft:#6E4834;
+    --cream:#FFF7E7;
+    --shadow:0 8px 0 rgba(64,36,27,.18), 0 14px 24px rgba(64,36,27,.20);
+    --shadow-soft:0 6px 18px rgba(64,36,27,.14);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Nunito",system-ui,sans-serif;
+    color:var(--cocoa);
+    background:
+      radial-gradient(1100px 420px at 50% -12%, rgba(255,240,170,.95) 0%, rgba(255,240,170,0) 62%),
+      radial-gradient(700px 260px at 10% 18%, rgba(255,255,255,.20) 0%, rgba(255,255,255,0) 60%),
+      radial-gradient(700px 260px at 90% 22%, rgba(255,255,255,.12) 0%, rgba(255,255,255,0) 60%),
+      linear-gradient(180deg,#F7B645 0%, #E88B36 43%, #D96E2E 100%);
+    min-height:100%;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:14px;
+  }
+  .wrap{width:100%; max-width:780px;}
+
+  .banner{
+    display:flex;
+    gap:0;
+    justify-content:center;
+    margin:2px 0 10px;
+    filter:drop-shadow(0 4px 3px rgba(64,36,27,.25))
+  }
+  .flag{
+    width:44px;height:40px;position:relative;
+    clip-path:polygon(0 0,100% 0,100% 66%,50% 100%,0 66%);
+    opacity:.96
+  }
+  .flag::before{
+    content:"";
+    position:absolute;inset:7px 10px 12px;border-radius:50%;
+    background:rgba(255,247,231,.55)
+  }
+  .flag:nth-child(6n+1){background:var(--chili)}
+  .flag:nth-child(6n+2){background:var(--turq)}
+  .flag:nth-child(6n+3){background:var(--lime)}
+  .flag:nth-child(6n+4){background:var(--marigold)}
+  .flag:nth-child(6n+5){background:#E24D8B}
+  .flag:nth-child(6n+6){background:#7A5CC0}
+
+  .hud{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:rgba(52,28,20,.96);
+    color:var(--masa);
+    border-radius:18px;
+    padding:10px 16px;
+    box-shadow:var(--shadow);
+    margin-bottom:12px;
+    border:1px solid rgba(255,255,255,.08);
+    backdrop-filter:blur(10px) saturate(140%);
+    -webkit-backdrop-filter:blur(10px) saturate(140%);
+  }
+  .brand{
+    font-family:"Fredoka";
+    font-weight:600;
+    font-size:20px;
+    letter-spacing:.3px;
+    display:flex;
+    align-items:center;
+    gap:8px
+  }
+  .brand .sun{
+    width:22px;height:22px;border-radius:50%;
+    background:radial-gradient(circle at 40% 35%,#FFE08A,#F6A21E);
+    box-shadow:0 0 0 3px rgba(246,162,30,.35)
+  }
+  .hud-stats{
+    display:flex;
+    gap:16px;
+    font-family:"Fredoka";
+    font-weight:500
+  }
+  .hud-stats b{
+    display:block;
+    font-size:10px;
+    font-weight:600;
+    letter-spacing:1px;
+    opacity:.6;
+    text-transform:uppercase
+  }
+  .hud-stats span{font-size:17px}
+
+  .stage{
+    background:
+      radial-gradient(700px 250px at 50% 0%, rgba(246,162,30,.10), transparent 60%),
+      linear-gradient(180deg,rgba(255,247,231,.98),rgba(255,244,220,.98));
+    border-radius:24px;
+    box-shadow:var(--shadow);
+    padding:20px;
+    min-height:430px;
+    position:relative;
+    overflow:hidden;
+    border:1px solid rgba(64,36,27,.08)
+  }
+  .stage::before{
+    content:"";
+    position:absolute;inset:0;
+    background:
+      radial-gradient(700px 180px at 50% 0%, rgba(255,255,255,.42), transparent 60%),
+      linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
+    pointer-events:none
+  }
+  .stage::after{
+    content:"";
+    position:absolute;inset:0;border-radius:24px;
+    box-shadow:inset 0 0 0 4px rgba(255,255,255,.72);
+    pointer-events:none
+  }
+
+  .step-label{
+    font-family:"Fredoka";
+    font-weight:600;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    color:var(--chili);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:2px
+  }
+  .step-label .dot{width:8px;height:8px;border-radius:50%;background:var(--chili)}
+  h1.title{
+    font-family:"Fredoka";
+    font-weight:700;
+    font-size:30px;
+    line-height:1.05;
+    color:var(--cocoa);
+    margin-bottom:12px
+  }
+  h2.title{
+    font-family:"Fredoka";
+    font-weight:600;
+    font-size:24px;
+    color:var(--cocoa);
+    margin-bottom:10px
+  }
+  p.lead{
+    font-size:15px;
+    color:var(--cocoa-soft);
+    line-height:1.5;
+    max-width:52ch
+  }
+
+  .btn{
+    font-family:"Fredoka";
+    font-weight:600;
+    font-size:17px;
+    color:#fff;
+    background:linear-gradient(180deg,var(--chili),var(--chili-deep));
+    border:none;
+    border-radius:16px;
+    padding:13px 22px;
+    cursor:pointer;
+    box-shadow:0 6px 0 var(--chili-deep), 0 14px 18px rgba(168,42,30,.18);
+    transition:transform .08s, box-shadow .08s, filter .12s
+  }
+  .btn:hover{filter:brightness(1.06);transform:translateY(-1px)}
+  .btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--chili-deep)}
+  .btn.go{
+    background:linear-gradient(180deg,var(--lime),var(--lime-deep));
+    box-shadow:0 6px 0 var(--lime-deep), 0 14px 18px rgba(108,154,42,.18)
+  }
+  .btn.go:active{box-shadow:0 1px 0 var(--lime-deep)}
+  .btn.ghost{
+    background:linear-gradient(180deg,#574137,#26140e);
+    box-shadow:0 6px 0 #26140e
+  }
+  .btn.ghost:active{box-shadow:0 1px 0 #26140e}
+  .btn:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.3)}
+  .btn-row{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-top:18px
+  }
+
+  .title-screen{text-align:center;padding:26px 10px 10px}
+  .title-screen .big{
+    font-family:"Fredoka";
+    font-weight:700;
+    font-size:44px;
+    color:var(--cocoa);
+    line-height:1;
+    margin-bottom:6px
+  }
+  .title-screen .big em{color:var(--chili);font-style:normal}
+  .title-screen .tag{font-size:16px;color:var(--cocoa-soft);margin-bottom:22px}
+  .taco-hero{
+    font-size:96px;
+    line-height:1;
+    margin:6px 0 14px;
+    animation:bob 2.4s ease-in-out infinite;
+    display:inline-block;
+    filter:drop-shadow(0 10px 14px rgba(64,36,27,.18))
+  }
+  @keyframes bob{
+    0%,100%{transform:translateY(0) rotate(-4deg)}
+    50%{transform:translateY(-10px) rotate(4deg)}
+  }
+
+  .order-grid{
+    display:grid;
+    grid-template-columns:150px 1fr;
+    gap:20px;
+    align-items:start
+  }
+  .customer{
+    background:linear-gradient(180deg,#FFF,#FBE9C7);
+    border-radius:18px;
+    padding:14px 10px;
+    text-align:center;
+    box-shadow:inset 0 0 0 3px #fff, 0 4px 10px rgba(64,36,27,.12)
+  }
+  .customer .name{font-family:"Fredoka";font-weight:600;font-size:17px;margin-top:8px}
+  .customer .mood{font-size:12px;color:var(--cocoa-soft)}
+
+  .ticket{
+    background:#fff;
+    border-radius:14px;
+    padding:16px 18px;
+    box-shadow:0 4px 10px rgba(64,36,27,.12);
+    background-image:repeating-linear-gradient(180deg,transparent,transparent 33px,#F0E4C8 33px,#F0E4C8 34px);
+    position:relative
+  }
+  .ticket::before{
+    content:"ORDEN";
+    position:absolute;
+    top:-11px;left:16px;
+    background:var(--chili);
+    color:#fff;
+    font-family:"Fredoka";
+    font-weight:600;
+    font-size:12px;
+    letter-spacing:2px;
+    padding:3px 10px;
+    border-radius:8px
+  }
+  .ticket ul{list-style:none;margin-top:6px}
+  .ticket li{
+    display:flex;
+    justify-content:space-between;
+    padding:6px 0;
+    font-size:15px;
+    border-bottom:1px dashed #E4D6B4
+  }
+  .ticket li:last-child{border-bottom:none}
+  .ticket li span:first-child{color:var(--cocoa-soft)}
+  .ticket li b{font-family:"Fredoka";font-weight:600;color:var(--cocoa)}
+
+  .work{display:grid;grid-template-columns:1fr 220px;gap:18px;align-items:stretch}
+  @media(max-width:620px){
+    .work{grid-template-columns:1fr}
+    .order-grid{grid-template-columns:1fr}
+  }
+
+  .counter{
+    background:linear-gradient(180deg,#FBE9C7,#EBD199);
+    border-radius:18px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    min-height:300px;
+    position:relative;
+    box-shadow:inset 0 3px 8px rgba(64,36,27,.14)
+  }
+  .tortilla{
+    width:180px;height:180px;
+    border-radius:50%;
+    position:relative;
+    background:radial-gradient(circle at 42% 38%,#F7E4A8,#E9C97A 70%,#D9B463);
+    box-shadow:0 6px 14px rgba(64,36,27,.25), inset 0 0 22px rgba(180,140,60,.35);
+    transition:filter .3s;
+    display:flex;
+    align-items:center;
+    justify-content:center
+  }
+  .tortilla::after{
+    content:"";
+    position:absolute;
+    inset:12px;
+    border-radius:50%;
+    border:2px solid rgba(64,36,27,.08);
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.08)
+  }
+  .tortilla .spot{position:absolute;width:10px;height:8px;border-radius:50%;background:rgba(150,110,50,.35)}
+  .tortilla.dipped{
+    background:radial-gradient(circle at 42% 38%,#E39A5A,#C86A34 72%,#A94E24);
+    box-shadow:0 6px 14px rgba(120,50,20,.35), inset 0 0 26px rgba(120,40,10,.4)
+  }
+  .fillings{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  .scoop{
+    position:absolute;
+    width:34px;height:26px;
+    border-radius:44% 56% 60% 40%;
+    background:linear-gradient(160deg,#8A4A22,#5E2E15);
+    box-shadow:0 2px 3px rgba(0,0,0,.3)
+  }
+  .cheese-layer{position:absolute;width:120px;height:70px;pointer-events:none}
+  .cheese-strand{
+    position:absolute;
+    width:26px;height:5px;border-radius:3px;
+    background:linear-gradient(90deg,#FFE7A0,#FBD34E);
+    box-shadow:0 1px 1px rgba(0,0,0,.15)
+  }
+  .hint{
+    font-size:13px;
+    color:var(--cocoa-soft);
+    margin-top:14px;
+    text-align:center;
+    font-weight:700
+  }
+
+  .bins{display:flex;flex-direction:column;gap:10px}
+  .bin{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:#fff;
+    border:none;
+    border-radius:14px;
+    padding:11px 13px;
+    cursor:pointer;
+    text-align:left;
+    box-shadow:0 3px 0 rgba(64,36,27,.15);
+    transition:transform .06s,box-shadow .06s,width .06s;
+    width:100%
+  }
+  .bin:hover{filter:brightness(1.03);transform:translateY(-1px)}
+  .bin:active{transform:translateY(3px);box-shadow:0 0 0 rgba(64,36,27,.15)}
+  .bin .ico{
+    width:40px;height:40px;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;flex:0 0 auto;
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.45)
+  }
+  .bin .txt{
+    font-family:"Fredoka";
+    font-weight:600;
+    font-size:15px;
+    line-height:1.1
+  }
+  .bin .txt small{
+    display:block;
+    font-family:"Nunito";
+    font-weight:700;
+    font-size:11px;
+    color:var(--cocoa-soft)
+  }
+  .bin.on{outline:3px solid var(--lime);outline-offset:1px}
+  .count-pill{
+    margin-left:auto;
+    font-family:"Fredoka";
+    font-weight:600;
+    background:var(--cocoa);
+    color:#fff;
+    border-radius:20px;
+    min-width:26px;
+    height:26px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:14px;
+    padding:0 6px
+  }
+
+  .griddle-scene{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:6px}
+  .griddle{
+    width:260px;height:150px;
+    border-radius:16px;
+    position:relative;
+    background:linear-gradient(180deg,#3A3A3E,#1E1E22);
+    box-shadow:inset 0 6px 16px rgba(0,0,0,.6),0 8px 14px rgba(0,0,0,.3);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden
+  }
+  .griddle::before{
+    content:"";
+    position:absolute;inset:0;
+    background:repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 2px,transparent 2px 26px)
+  }
+  .grill-taco{
+    width:120px;height:78px;
+    border-radius:60px 60px 12px 12px;
+    position:relative;
+    background:linear-gradient(180deg,#E9C97A,#D9B463);
+    transform:rotate(-2deg);
+    box-shadow:0 4px 8px rgba(0,0,0,.4);
+    transition:filter .1s
+  }
+  .sizzle{
+    position:absolute;
+    top:-6px;width:6px;height:6px;border-radius:50%;
+    background:rgba(255,255,255,.7);
+    animation:rise 1.1s linear infinite
+  }
+  @keyframes rise{
+    0%{transform:translateY(0);opacity:0}
+    30%{opacity:.8}
+    100%{transform:translateY(-40px);opacity:0}
+  }
+  .meter{
+    width:280px;height:26px;
+    border-radius:20px;
+    position:relative;
+    overflow:hidden;
+    background:#EADFC4;
+    box-shadow:inset 0 2px 4px rgba(64,36,27,.25);
+    margin-top:6px
+  }
+  .meter .zone{position:absolute;top:0;bottom:0}
+  .meter .needle{
+    position:absolute;
+    top:-4px;bottom:-4px;
+    width:4px;border-radius:3px;
+    background:var(--cocoa);
+    left:0;
+    box-shadow:0 0 0 2px rgba(255,255,255,.7);
+    transition:left .05s linear
+  }
+  .zone-labels{
+    width:280px;
+    display:flex;
+    justify-content:space-between;
+    font-size:10px;
+    font-weight:800;
+    color:var(--cocoa-soft);
+    text-transform:uppercase;
+    letter-spacing:.5px
+  }
+
+  .score-head{text-align:center;margin-bottom:8px}
+  .stars{
+    font-size:34px;
+    letter-spacing:4px;
+    margin:4px 0;
+    filter:drop-shadow(0 2px 0 rgba(64,36,27,.12))
+  }
+  .pct{
+    font-family:"Fredoka";
+    font-weight:700;
+    font-size:52px;
+    color:var(--chili);
+    line-height:1
+  }
+  .breakdown{
+    background:#fff;
+    border-radius:14px;
+    padding:8px 16px;
+    box-shadow:0 4px 10px rgba(64,36,27,.12);
+    max-width:440px;
+    margin:14px auto 0
+  }
+  .brow{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 0;
+    border-bottom:1px dashed #E4D6B4;
+    font-size:14px
+  }
+  .brow:last-child{border-bottom:none}
+  .brow .v{margin-left:auto;font-family:"Fredoka";font-weight:600}
+  .brow .mark{
+    width:22px;height:22px;border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:13px;
+    font-weight:800;
+    flex:0 0 auto
+  }
+  .mark.good{background:var(--lime)}
+  .mark.mid{background:var(--marigold)}
+  .mark.bad{background:var(--chili)}
+  .tip-line{text-align:center;font-family:"Fredoka";font-weight:600;font-size:20px;margin-top:16px}
+  .tip-line b{color:var(--lime-deep)}
+  .center{text-align:center}
+  .fade{animation:fade .3s ease}
+  @keyframes fade{
+    from{opacity:0;transform:translateY(6px)}
+    to{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner" id="banner"></div>
+  <div class="hud">
+    <div class="brand"><span class="sun"></span>Taquería El Sol</div>
+    <div class="hud-stats">
+      <div><b>Order</b><span id="hud-order">#1</span></div>
+      <div><b>Cash</b><span id="hud-cash">$0.00</span></div>
+    </div>
+  </div>
+  <div class="stage" id="stage"></div>
+</div>
+
+<script>
+const banner = document.getElementById('banner');
+for(let i=0;i<15;i++){
+  const f=document.createElement('div');
+  f.className='flag';
+  banner.appendChild(f);
+}
+const stage = document.getElementById('stage');
+const hudOrder = document.getElementById('hud-order');
+const hudCash = document.getElementById('hud-cash');
+
+const TOPPINGS = [
+  {key:'onion',    label:'Onion',    emoji:'🧅', bg:'#F4E3C9'},
+  {key:'cilantro', label:'Cilantro', emoji:'🌿', bg:'#DCEBC5'},
+  {key:'lime',     label:'Lime',     emoji:'🍋', bg:'#E7EFB8'},
+  {key:'salsa',    label:'Salsa',    emoji:'🌶️', bg:'#F6D2C7'},
+];
+const CUSTOMERS = [
+  {name:'Rosa',   emoji:'👩🏽', mood:'Hungry and cheerful'},
+  {name:'Mateo',  emoji:'👨🏽', mood:'In a bit of a hurry'},
+  {name:'Lupita', emoji:'👵🏽', mood:'Very particular'},
+  {name:'Diego',  emoji:'🧑🏽', mood:'Easygoing regular'},
+];
+const MEAT_WORDS = {1:'Light', 2:'Normal', 3:'Extra'};
+const DONE_WORDS = {light:'Light crisp', medium:'Medium', well:'Well-crisped'};
+
+let cash = 0;
+let orderNum = 1;
+let order, made, cust;
+let grill = null;
+
+const rnd = arr => arr[Math.floor(Math.random()*arr.length)];
+
+function newOrder(){
+  cust = rnd(CUSTOMERS);
+  const wantTops = TOPPINGS.filter(()=>Math.random()<0.55).map(t=>t.key);
+  if(wantTops.length===0) wantTops.push(rnd(TOPPINGS).key);
+  order = {
+    meat: rnd([1,2,3]),
+    cheese: Math.random()<0.7,
+    doneness: rnd(['light','medium','well']),
+    toppings: wantTops,
+    consomme: Math.random()<0.65,
+  };
+  made = { dipped:false, meat:0, cheese:false, doneness:null, toppings:[], consomme:false };
+}
+
+function render(screen){
+  stage.className = 'stage';
+  hudOrder.textContent = '#'+orderNum;
+  hudCash.textContent = '$'+cash.toFixed(2);
+  ({title:Title, order:OrderScreen, build:Build, grill:Grill, garnish:Garnish, score:Score})[screen]();
+  stage.classList.add('fade');
+}
+
+function Title(){
+  stage.innerHTML = `
+    <div class="title-screen">
+      <div class="taco-hero">🌮</div>
+      <div class="big">Birria <em>El Sol</em></div>
+      <div class="tag">Dip it, stuff it, crisp it, serve it. Keep every customer smiling.</div>
+      <button class="btn go" id="start">Open the stand →</button>
+      <p class="lead" style="margin:18px auto 0">Phase 1 demo · one order at a time · four stations + scoring</p>
+    </div>`;
+  document.getElementById('start').onclick = ()=>{ newOrder(); render('order'); };
+}
+
+function OrderScreen(){
+  const li = (k,v)=>`<li><span>${k}</span><b>${v}</b></li>`;
+  const tops = order.toppings.map(k=>TOPPINGS.find(t=>t.key===k).label).join(', ');
+  stage.innerHTML = `
+    <div class="step-label"><span class="dot"></span>Station 1 · Order</div>
+    <h2 class="title">${cust.name} steps up to the counter</h2>
+    <div class="order-grid">
+      <div class="customer">
+        <div style="font-size:62px;line-height:1">${cust.emoji}</div>
+        <div class="name">${cust.name}</div>
+        <div class="mood">${cust.mood}</div>
+      </div>
+      <div>
+        <div class="ticket"><ul>
+          ${li('Birria meat', MEAT_WORDS[order.meat])}
+          ${li('Cheese', order.cheese?'Yes please':'No cheese')}
+          ${li('Grill', DONE_WORDS[order.doneness])}
+          ${li('Toppings', tops)}
+          ${li('Consommé cup', order.consomme?'On the side':'Not this time')}
+        </ul></div>
+        <div class="btn-row"><button class="btn go" id="cook">Start cooking →</button></div>
+      </div>
+    </div>`;
+  document.getElementById('cook').onclick = ()=> render('build');
+}
+
+function Build(){
+  stage.innerHTML = `
+    <div class="step-label"><span class="dot"></span>Station 2 · Build</div>
+    <h2 class="title">Dip the tortilla, then fill it</h2>
+    <div class="work">
+      <div class="counter">
+        <div class="tortilla" id="tort">
+          <div class="fillings" id="fillings"></div>
+          <div class="cheese-layer" id="cheeseL"></div>
+        </div>
+        <div class="hint" id="hint">Start by dipping in the consommé →</div>
+      </div>
+      <div class="bins">
+        <button class="bin" id="bin-dip"><span class="ico" style="background:#EAD3B0">🥣</span>
+          <span class="txt">Consommé dip<small>Stain the tortilla red</small></span></button>
+        <button class="bin" id="bin-meat"><span class="ico" style="background:#E7C39A">🍖</span>
+          <span class="txt">Birria meat<small>One scoop per tap</small></span>
+          <span class="count-pill" id="mc">0</span></button>
+        <button class="bin" id="bin-cheese"><span class="ico" style="background:#FBE9B0">🧀</span>
+          <span class="txt">Cheese<small>Tap to add / remove</small></span></button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn ghost" id="reset">Start over</button>
+      <button class="btn go" id="toGrill" disabled>Fold &amp; take to grill →</button>
+    </div>`;
+
+  const tort = document.getElementById('tort');
+  const fillings = document.getElementById('fillings');
+  const cheeseL = document.getElementById('cheeseL');
+  const hint = document.getElementById('hint');
+  const toGrill = document.getElementById('toGrill');
+
+  function refresh(){
+    tort.classList.toggle('dipped', made.dipped);
+    fillings.innerHTML='';
+    const spots=[[42,55],[58,52],[50,64],[38,66],[62,66]];
+    for(let i=0;i<made.meat;i++){
+      const s=document.createElement('div');
+      s.className='scoop';
+      const p=spots[i]||[50,60];
+      s.style.left=`calc(${p[0]}% - 17px)`;
+      s.style.top=`calc(${p[1]}% - 13px)`;
+      s.style.transform=`rotate(${i*40}deg)`;
+      fillings.appendChild(s);
+    }
+    cheeseL.innerHTML='';
+    if(made.cheese){
+      for(let i=0;i<7;i++){
+        const c=document.createElement('div');
+        c.className='cheese-strand';
+        c.style.left=(10+Math.random()*80)+'px';
+        c.style.top=(10+Math.random()*48)+'px';
+        c.style.transform=`rotate(${Math.random()*60-30}deg)`;
+        cheeseL.appendChild(c);
+      }
+    }
+    document.getElementById('mc').textContent=made.meat;
+    document.getElementById('bin-cheese').classList.toggle('on',made.cheese);
+    document.getElementById('bin-dip').classList.toggle('on',made.dipped);
+    if(!made.dipped) hint.textContent='Start by dipping in the consommé →';
+    else if(made.meat===0) hint.textContent='Now add the birria meat →';
+    else hint.textContent='Looking good — add cheese or head to the grill';
+    toGrill.disabled = !(made.dipped && made.meat>0);
+  }
+
+  document.getElementById('bin-dip').onclick=()=>{made.dipped=true;refresh();};
+  document.getElementById('bin-meat').onclick=()=>{if(made.meat<5){made.meat++;refresh();}};
+  document.getElementById('bin-cheese').onclick=()=>{made.cheese=!made.cheese;refresh();};
+  document.getElementById('reset').onclick=()=>{made.dipped=false;made.meat=0;made.cheese=false;refresh();};
+  document.getElementById('toGrill').onclick=()=>render('grill');
+  refresh();
+}
+
+function Grill(){
+  stage.innerHTML = `
+    <div class="step-label"><span class="dot"></span>Station 3 · Plancha</div>
+    <h2 class="title">Crisp it — ${cust.name} wants it <span style="color:var(--chili)">${DONE_WORDS[order.doneness].toLowerCase()}</span></h2>
+    <div class="griddle-scene">
+      <div class="griddle"><div class="grill-taco" id="gt"></div></div>
+      <div class="meter" id="meter"><div class="needle" id="needle"></div></div>
+      <div class="zone-labels"><span>Raw</span><span>Light</span><span>Medium</span><span>Well</span><span>Burnt</span></div>
+      <div class="btn-row"><button class="btn" id="pull">Pull off the griddle!</button></div>
+      <p class="lead center" id="gmsg" style="min-height:22px">Tap when the crisp hits the zone on the ticket.</p>
+    </div>`;
+
+  const meter=document.getElementById('meter');
+  const needle=document.getElementById('needle');
+  const gt=document.getElementById('gt');
+  const pull=document.getElementById('pull');
+  const bands=[['#C9B27E',0,20],['#E8A24B',20,45],['#D8802F',45,70],['#B4571F',70,93],['#5C2E12',93,100]];
+  bands.forEach(([c,a,b])=>{
+    const z=document.createElement('div');
+    z.className='zone';
+    z.style.background=c;
+    z.style.left=a+'%';
+    z.style.width=(b-a)+'%';
+    meter.insertBefore(z,needle);
+  });
+
+  grill={value:0, running:true, raf:null, last:performance.now()};
+  function tick(now){
+    if(!grill.running) return;
+    const dt=(now-grill.last)/1000;
+    grill.last=now;
+    grill.value=Math.min(110, grill.value + dt*20);
+    const shown=Math.min(100,grill.value);
+    needle.style.left=shown+'%';
+    const b=1-grill.value/180, s=grill.value/140;
+    gt.style.filter=`brightness(${b.toFixed(2)}) sepia(${s.toFixed(2)}) saturate(1.4)`;
+    if(Math.random()<0.25){
+      const sp=document.createElement('div');
+      sp.className='sizzle';
+      sp.style.left=(20+Math.random()*80)+'px';
+      gt.appendChild(sp);
+      setTimeout(()=>sp.remove(),1100);
+    }
+    if(grill.value>=110){stopGrill();}
+    else grill.raf=requestAnimationFrame(tick);
+  }
+  function bandFor(v){
+    if(v<20)return'raw';
+    if(v<45)return'light';
+    if(v<70)return'medium';
+    if(v<93)return'well';
+    return'burnt';
+  }
+  function stopGrill(){
+    grill.running=false;
+    if(grill.raf)cancelAnimationFrame(grill.raf);
+    made.doneness=bandFor(grill.value);
+    pull.disabled=true;
+    const msg=document.getElementById('gmsg');
+    const nice={
+      raw:'Barely warm!',
+      light:'Light and soft.',
+      medium:'Nicely crisped.',
+      well:'Deep golden crunch.',
+      burnt:'Uh oh — burnt!'
+    }[made.doneness];
+    msg.textContent=nice+' Plating up…';
+    setTimeout(()=>render('garnish'),900);
+  }
+  pull.onclick=stopGrill;
+  grill.raf=requestAnimationFrame(tick);
+}
+
+function Garnish(){
+  stage.innerHTML = `
+    <div class="step-label"><span class="dot"></span>Station 4 · Garnish &amp; serve</div>
+    <h2 class="title">Top it off</h2>
+    <div class="work">
+      <div class="counter">
+        <div class="tortilla dipped" style="width:150px;height:150px">
+          <div class="fillings" id="gf"></div>
+        </div>
+        <div class="hint">Add the toppings ${cust.name} asked for</div>
+      </div>
+      <div class="bins" id="topBins"></div>
+    </div>
+    <div class="btn-row">
+      <button class="bin" id="consomme" style="max-width:220px">
+        <span class="ico" style="background:#EAD3B0">🍵</span>
+        <span class="txt">Consommé cup<small>Side for dipping</small></span></button>
+    </div>
+    <div class="btn-row"><button class="btn go" id="serve">Serve to ${cust.name} →</button></div>`;
+
+  const bins=document.getElementById('topBins');
+  TOPPINGS.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='bin';
+    b.id='t-'+t.key;
+    b.innerHTML=`<span class="ico" style="background:${t.bg}">${t.emoji}</span>
+      <span class="txt">${t.label}<small>Tap to add</small></span>`;
+    b.onclick=()=>{
+      const i=made.toppings.indexOf(t.key);
+      if(i>=0)made.toppings.splice(i,1);
+      else made.toppings.push(t.key);
+      b.classList.toggle('on', made.toppings.includes(t.key));
+    };
+    bins.appendChild(b);
+  });
+  const cons=document.getElementById('consomme');
+  cons.onclick=()=>{made.consomme=!made.consomme;cons.classList.toggle('on',made.consomme);};
+  document.getElementById('serve').onclick=()=>render('score');
+}
+
+function scoreOrder(){
+  const rows=[]; let got=0, max=0;
+  const add=(label,pts,ptsMax,verdict,note)=>{rows.push({label,verdict,note});got+=pts;max+=ptsMax;};
+
+  add('Consommé dip', made.dipped?20:0, 20,
+      made.dipped?'good':'bad',
+      made.dipped?'Perfect red-stained shell':'You skipped the dip!');
+
+  const md=Math.abs(made.meat-order.meat);
+  add('Birria meat', md===0?25:md===1?14:4, 25,
+      md===0?'good':md===1?'mid':'bad',
+      md===0?'Spot on':made.meat>order.meat?'A little heavy':'A little light');
+
+  add('Cheese', made.cheese===order.cheese?15:0, 15,
+      made.cheese===order.cheese?'good':'bad',
+      made.cheese===order.cheese?'Just right':order.cheese?'They wanted cheese':'They didn\'t want cheese');
+
+  const dorder=['light','medium','well'];
+  const oi=dorder.indexOf(order.doneness), mi=dorder.indexOf(made.doneness);
+  let gp,gv,gn;
+  if(made.doneness===order.doneness){gp=25;gv='good';gn='Grilled perfectly';}
+  else if(mi>=0 && Math.abs(mi-oi)===1){gp=13;gv='mid';gn='Close on the crisp';}
+  else if(made.doneness==='burnt'){gp=0;gv='bad';gn='Burnt it!';}
+  else if(made.doneness==='raw'){gp=2;gv='bad';gn='Barely cooked';}
+  else {gp=5;gv='bad';gn='Wrong crisp level';}
+  add('Grill', gp,25, gv,gn);
+
+  const want=new Set(order.toppings), have=new Set(made.toppings);
+  let tHit=0,tMiss=0,tExtra=0;
+  want.forEach(k=>{have.has(k)?tHit++:tMiss++});
+  have.forEach(k=>{if(!want.has(k))tExtra++});
+  const tTotal=want.size;
+  const tp=Math.max(0, Math.round((tHit/tTotal)*15) - tExtra*4);
+  add('Toppings', tp,15,
+      (tMiss===0&&tExtra===0)?'good':(tHit>0?'mid':'bad'),
+      (tMiss===0&&tExtra===0)?'Every topping right':`${tMiss} missing, ${tExtra} extra`);
+
+  add('Consommé cup', made.consomme===order.consomme?10:0,10,
+      made.consomme===order.consomme?'good':'bad',
+      made.consomme===order.consomme?'Side sorted':order.consomme?'Forgot the side':'Extra cup they didn\'t want');
+
+  const pct=Math.round(got/max*100);
+  const stars = pct>=92?5:pct>=78?4:pct>=60?3:pct>=40?2:1;
+  const tip = +(2 + (pct/100)*6).toFixed(2);
+  return {rows,pct,stars,tip};
+}
+
+function Score(){
+  const r=scoreOrder();
+  cash += r.tip;
+  const starStr = '⭐'.repeat(r.stars)+'☆'.repeat(5-r.stars);
+  const praise = r.pct>=92?'¡Perfecto! '+cust.name+' is thrilled.'
+    : r.pct>=78?'¡Muy bien! '+cust.name+' is happy.'
+    : r.pct>=60?cust.name+' is satisfied.'
+    : r.pct>=40?cust.name+' will eat it… mostly.'
+    : cust.name+' is not impressed.';
+  stage.innerHTML = `
+    <div class="score-head">
+      <div class="step-label center" style="justify-content:center"><span class="dot"></span>Order complete</div>
+      <div class="stars">${starStr}</div>
+      <div class="pct">${r.pct}%</div>
+      <p class="lead center" style="margin:4px auto 0">${praise}</p>
+    </div>
+    <div class="breakdown">
+      ${r.rows.map(row=>`<div class="brow">
+        <span class="mark ${row.verdict}">${row.verdict==='good'?'✓':row.verdict==='mid'?'~':'✕'}</span>
+        <span>${row.label}</span>
+        <span class="v">${row.note}</span></div>`).join('')}
+    </div>
+    <div class="tip-line">Tip earned: <b>$${r.tip.toFixed(2)}</b></div>
+    <div class="btn-row center" style="justify-content:center">
+      <button class="btn go" id="next">Next customer →</button>
+    </div>`;
+  hudCash.textContent='$'+cash.toFixed(2);
+  document.getElementById('next').onclick=()=>{ orderNum++; newOrder(); render('order'); };
+}
+
+render('title');
+</script>
+</body>
+</html>
