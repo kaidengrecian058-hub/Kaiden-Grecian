@@ -161,6 +161,30 @@
   ::-webkit-scrollbar-thumb{background:rgba(92,243,255,.35);border-radius:6px}
 
   .footer-note{text-align:center;color:var(--text-dim);font-size:10.5px;letter-spacing:1px;margin-top:14px;opacity:.7}
+
+  /* ---------- Settings modal ---------- */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(1,4,8,.82);z-index:1000;
+    display:flex;align-items:center;justify-content:center;padding:16px;
+  }
+  .modal-card{
+    background:#04141C;border:1px solid var(--panel-edge);border-radius:16px;
+    padding:20px 22px;max-width:420px;width:100%;box-shadow:0 0 40px rgba(92,243,255,.15);
+  }
+  .modal-card h2{font-family:Orbitron;font-size:14px;letter-spacing:2px;color:var(--cyan);margin-bottom:14px}
+  .settings-section{margin-bottom:16px;display:flex;flex-direction:column;gap:6px}
+  .settings-section label{font-size:11px;color:var(--text-dim);letter-spacing:.5px}
+  .settings-section .hint{font-size:10px;color:var(--cyan-dim);opacity:.85}
+  .settings-section input{
+    background:rgba(92,243,255,.05);border:1px solid var(--panel-edge);border-radius:8px;
+    padding:9px 11px;color:var(--text);font-family:"Share Tech Mono";font-size:13px;outline:none;
+  }
+  .settings-section input:focus{border-color:var(--cyan)}
+  .btn{
+    border:1px solid var(--panel-edge);color:var(--text);border-radius:10px;cursor:pointer;
+    font-family:"Share Tech Mono";
+  }
+  .btn.go{background:linear-gradient(180deg,var(--cyan-deep),var(--cyan-dim));border:none;color:#02131A;font-weight:700}
 </style>
 </head>
 <body>
@@ -182,7 +206,9 @@
         <div class="time" id="clockTime">--:--:--</div>
         <div class="date" id="clockDate">-- --- ----</div>
       </div>
+      <button class="icon-btn" id="wakeBtn" title="Toggle wake-word listening (&quot;Hey JARVIS&quot;)">👂</button>
       <button class="icon-btn" id="voiceToggleBtn" title="Toggle spoken replies">🔊</button>
+      <button class="icon-btn" id="settingsBtn" title="Settings">⚙</button>
     </div>
   </header>
 
@@ -208,6 +234,7 @@
         <button class="qa-btn" data-cmd="what time is it"><span class="ic">◷</span>Time</button>
         <button class="qa-btn" data-cmd="what's the date"><span class="ic">◫</span>Date</button>
         <button class="qa-btn" data-cmd="weather"><span class="ic">☁</span>Weather</button>
+        <button class="qa-btn" data-cmd="what's on my calendar"><span class="ic">📅</span>Agenda</button>
         <button class="qa-btn" data-cmd="tell me a joke"><span class="ic">☺</span>Joke</button>
         <button class="qa-btn" data-cmd="help"><span class="ic">?</span>Capabilities</button>
       </div>
@@ -246,6 +273,29 @@
   <div class="footer-note">J.A.R.V.I.S. runs entirely in your browser — voice recognition and speech synthesis use your device's built-in engine.</div>
 </div>
 
+<div class="modal-overlay" id="settingsOverlay" style="display:none">
+  <div class="modal-card">
+    <h2>SETTINGS</h2>
+    <div class="settings-section">
+      <label>Anthropic API key <span class="hint">(for open-ended conversation — stored only in this browser)</span></label>
+      <input type="password" id="anthropicKeyInput" placeholder="sk-ant-...">
+      <label>Model</label>
+      <input type="text" id="anthropicModelInput" placeholder="claude-opus-4-8">
+    </div>
+    <div class="settings-section">
+      <label>Google OAuth Client ID <span class="hint">(for calendar access — create one in Google Cloud Console)</span></label>
+      <input type="text" id="googleClientIdInput" placeholder="xxxx.apps.googleusercontent.com">
+      <button class="qa-btn" id="connectGoogleBtn" style="margin-top:8px"><span class="ic">📅</span>Connect Google Calendar</button>
+      <div id="googleStatus" class="hint" style="margin-top:6px">Not connected</div>
+    </div>
+    <div class="board-actions" style="margin-top:16px">
+      <button class="btn go" id="saveSettingsBtn" style="padding:9px 16px;font-size:14px">Save</button>
+      <button class="btn" id="closeSettingsBtn" style="padding:9px 16px;font-size:14px;background:linear-gradient(180deg,var(--cyan-dim),#062A33)">Close</button>
+    </div>
+  </div>
+</div>
+
+
 <script>
 /* ============================================================
    STATE
@@ -256,6 +306,12 @@ const S = {
   notes: JSON.parse(localStorage.getItem('jarvis_notes') || '[]'),
   listening: false,
   speaking: false,
+  wakeOn: false,
+  anthropicKey: localStorage.getItem('jarvis_anthropic_key') || '',
+  anthropicModel: localStorage.getItem('jarvis_anthropic_model') || 'claude-opus-4-8',
+  googleClientId: localStorage.getItem('jarvis_google_client_id') || '',
+  googleToken: null,
+  googleTokenExpiry: 0,
 };
 
 /* ============================================================
@@ -363,8 +419,14 @@ function speak(text){
   const u = new SpeechSynthesisUtterance(text);
   if(chosenVoice) u.voice = chosenVoice;
   u.rate = 1.0; u.pitch = 0.95;
-  u.onstart = ()=>{ S.speaking = true; setCoreState('speaking'); };
-  u.onend = ()=>{ S.speaking = false; setCoreState('idle'); };
+  u.onstart = ()=>{
+    S.speaking = true; setCoreState('speaking');
+    if(wakeRecognizer){ try{ wakeRecognizer.stop(); }catch(e){} }
+  };
+  u.onend = ()=>{
+    S.speaking = false; setCoreState('idle');
+    if(S.wakeOn && wakeRecognizer){ try{ wakeRecognizer.start(); }catch(e){} }
+  };
   speechSynthesis.speak(u);
 }
 
@@ -413,6 +475,223 @@ voiceBtn.onclick = ()=>{
   if(!S.voiceOn) speechSynthesis.cancel();
 };
 renderVoiceBtn();
+
+/* ============================================================
+   WAKE WORD ("Hey JARVIS") — continuous background listening
+============================================================ */
+const wakeBtn = document.getElementById('wakeBtn');
+let wakeRecognizer = null, awaitingWakeCommand = false;
+function renderWakeBtn(){
+  wakeBtn.classList.toggle('off', !S.wakeOn);
+  wakeBtn.title = S.wakeOn ? 'Wake word listening ON — say "Hey JARVIS"' : 'Toggle wake-word listening ("Hey JARVIS")';
+}
+function buildWakeRecognizer(){
+  if(!SR) return null;
+  const r = new SR();
+  r.lang = 'en-US';
+  r.continuous = true;
+  r.interimResults = true;
+  r.onresult = (e)=>{
+    const res = e.results[e.results.length-1];
+    if(!res.isFinal) return;
+    const text = res[0].transcript.trim();
+    const lower = text.toLowerCase();
+    if(awaitingWakeCommand){
+      awaitingWakeCommand = false;
+      document.getElementById('cmdInput').value = text;
+      handleSubmit();
+      return;
+    }
+    const m = lower.match(/hey jarvis[,:]?\s*(.*)/i);
+    if(m){
+      const rest = m[1].trim();
+      if(rest){
+        document.getElementById('cmdInput').value = rest;
+        handleSubmit();
+      } else {
+        awaitingWakeCommand = true;
+        speak('Yes?');
+        logEvent('Wake word detected — listening for command');
+      }
+    }
+  };
+  r.onerror = ()=>{};
+  r.onend = ()=>{ if(S.wakeOn && !S.speaking){ try{ r.start(); }catch(e){} } };
+  return r;
+}
+wakeBtn.onclick = ()=>{
+  if(!SR){ logEvent('Speech recognition not supported — wake word unavailable.'); return; }
+  S.wakeOn = !S.wakeOn;
+  renderWakeBtn();
+  if(S.wakeOn){
+    wakeRecognizer = buildWakeRecognizer();
+    try{ wakeRecognizer.start(); logEvent('Wake word listening enabled.'); }catch(e){}
+  } else {
+    awaitingWakeCommand = false;
+    if(wakeRecognizer){ try{ wakeRecognizer.stop(); }catch(e){} wakeRecognizer = null; }
+    logEvent('Wake word listening disabled.');
+  }
+};
+renderWakeBtn();
+
+/* ============================================================
+   SETTINGS MODAL
+============================================================ */
+const settingsOverlay = document.getElementById('settingsOverlay');
+function openSettings(){
+  document.getElementById('anthropicKeyInput').value = S.anthropicKey;
+  document.getElementById('anthropicModelInput').value = S.anthropicModel;
+  document.getElementById('googleClientIdInput').value = S.googleClientId;
+  document.getElementById('googleStatus').textContent = S.googleToken ? 'Connected' : 'Not connected';
+  settingsOverlay.style.display = 'flex';
+}
+function closeSettings(){ settingsOverlay.style.display = 'none'; }
+document.getElementById('settingsBtn').onclick = openSettings;
+document.getElementById('closeSettingsBtn').onclick = closeSettings;
+document.getElementById('saveSettingsBtn').onclick = ()=>{
+  S.anthropicKey = document.getElementById('anthropicKeyInput').value.trim();
+  S.anthropicModel = document.getElementById('anthropicModelInput').value.trim() || 'claude-opus-4-8';
+  S.googleClientId = document.getElementById('googleClientIdInput').value.trim();
+  localStorage.setItem('jarvis_anthropic_key', S.anthropicKey);
+  localStorage.setItem('jarvis_anthropic_model', S.anthropicModel);
+  localStorage.setItem('jarvis_google_client_id', S.googleClientId);
+  closeSettings();
+  logEvent('Settings saved.');
+};
+
+/* ============================================================
+   GOOGLE CALENDAR (client-side OAuth via Google Identity Services)
+============================================================ */
+let gisLoaded = false, gisTokenClient = null;
+function loadGis(){
+  return new Promise((resolve, reject)=>{
+    if(gisLoaded) return resolve();
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = ()=>{ gisLoaded = true; resolve(); };
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+async function connectGoogleCalendar(){
+  if(!S.googleClientId){ document.getElementById('googleStatus').textContent = 'Add a Client ID first.'; return; }
+  try{ await loadGis(); }catch(e){ document.getElementById('googleStatus').textContent = 'Failed to load Google script.'; return; }
+  document.getElementById('googleStatus').textContent = 'Connecting…';
+  gisTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: S.googleClientId,
+    scope: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly',
+    callback: (resp)=>{
+      if(resp.error){ document.getElementById('googleStatus').textContent = 'Error: '+resp.error; return; }
+      S.googleToken = resp.access_token;
+      S.googleTokenExpiry = Date.now() + (resp.expires_in*1000);
+      document.getElementById('googleStatus').textContent = 'Connected';
+      logEvent('Google Calendar connected.');
+    },
+  });
+  gisTokenClient.requestAccessToken();
+}
+document.getElementById('connectGoogleBtn').onclick = connectGoogleCalendar;
+
+function ensureGoogleToken(){
+  return new Promise((resolve, reject)=>{
+    if(S.googleToken && Date.now() < S.googleTokenExpiry - 30000) return resolve(S.googleToken);
+    if(!S.googleClientId) return reject(new Error('no-client-id'));
+    loadGis().then(()=>{
+      gisTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: S.googleClientId,
+        scope: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly',
+        callback: (resp)=>{
+          if(resp.error) return reject(new Error(resp.error));
+          S.googleToken = resp.access_token;
+          S.googleTokenExpiry = Date.now() + (resp.expires_in*1000);
+          resolve(S.googleToken);
+        },
+      });
+      gisTokenClient.requestAccessToken();
+    }).catch(reject);
+  });
+}
+async function fetchTodaysEvents(){
+  const token = await ensureGoogleToken();
+  const start = new Date(); start.setHours(0,0,0,0);
+  const end = new Date(); end.setHours(23,59,59,999);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(start.toISOString())}&timeMax=${encodeURIComponent(end.toISOString())}&singleEvents=true&orderBy=startTime`;
+  const res = await fetch(url, {headers:{Authorization:'Bearer '+token}});
+  if(!res.ok) throw new Error('calendar fetch failed');
+  const data = await res.json();
+  if(!data.items || !data.items.length) return "You have nothing on your calendar today.";
+  return "Today's schedule: " + data.items.map(ev=>{
+    const t = ev.start.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : 'all day';
+    return `${t} — ${ev.summary||'(untitled)'}`;
+  }).join('; ');
+}
+async function fetchNextEvent(){
+  const token = await ensureGoogleToken();
+  const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(new Date().toISOString())}&singleEvents=true&orderBy=startTime&maxResults=1`;
+  const res = await fetch(url, {headers:{Authorization:'Bearer '+token}});
+  if(!res.ok) throw new Error('calendar fetch failed');
+  const data = await res.json();
+  if(!data.items || !data.items.length) return "You have no upcoming events.";
+  const ev = data.items[0];
+  const t = ev.start.dateTime ? new Date(ev.start.dateTime).toLocaleString([], {weekday:'short', hour:'numeric', minute:'2-digit'}) : ev.start.date;
+  return `Your next event is "${ev.summary||'(untitled)'}" at ${t}.`;
+}
+function parseEventDateTime(dayWord, timeWord){
+  const d = new Date();
+  if(dayWord==='tomorrow') d.setDate(d.getDate()+1);
+  const m = timeWord.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+  let hour = parseInt(m[1],10), min = m[2]?parseInt(m[2],10):0;
+  const ampm = m[3].toLowerCase();
+  if(ampm==='pm' && hour<12) hour += 12;
+  if(ampm==='am' && hour===12) hour = 0;
+  d.setHours(hour, min, 0, 0);
+  return d;
+}
+async function createCalendarEvent(title, dayWord, timeWord){
+  const token = await ensureGoogleToken();
+  const start = parseEventDateTime(dayWord, timeWord);
+  const end = new Date(start.getTime() + 60*60000);
+  const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+    method:'POST',
+    headers:{Authorization:'Bearer '+token, 'Content-Type':'application/json'},
+    body: JSON.stringify({summary:title, start:{dateTime:start.toISOString()}, end:{dateTime:end.toISOString()}}),
+  });
+  if(!res.ok) throw new Error('calendar create failed');
+  return `Added "${title}" to your calendar for ${start.toLocaleString([], {weekday:'long', hour:'numeric', minute:'2-digit'})}.`;
+}
+
+/* ============================================================
+   LLM FALLBACK (Anthropic Claude API — bring-your-own-key)
+============================================================ */
+async function askClaude(userText){
+  const box = document.getElementById('transcript');
+  const history = Array.from(box.querySelectorAll('.msg')).slice(-10).map(el=>({
+    role: el.classList.contains('user') ? 'user' : 'assistant',
+    content: el.querySelector('.txt').textContent,
+  }));
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': S.anthropicKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true',
+    },
+    body: JSON.stringify({
+      model: S.anthropicModel,
+      max_tokens: 1024,
+      system: `You are JARVIS, a concise, dry-witted personal assistant speaking to ${S.name}. Keep replies short and conversational — this will be read aloud.`,
+      messages: [...history, {role:'user', content:userText}],
+    }),
+  });
+  if(!res.ok){
+    const err = await res.json().catch(()=>null);
+    throw new Error(err?.error?.message || ('HTTP '+res.status));
+  }
+  const data = await res.json();
+  const block = data.content.find(b=>b.type==='text');
+  return block ? block.text : "I didn't get a usable response.";
+}
 
 /* ============================================================
    SAFE ARITHMETIC EVALUATOR (no eval/Function on arbitrary input)
@@ -596,6 +875,20 @@ async function handleCommand(raw){
     catch(e){ return "I need location access to check your local weather — try “weather in <city>” instead."; }
   }
 
+  // calendar
+  if(/what's next|whats next|next event|next meeting/.test(lower)){
+    try{ return await fetchNextEvent(); }
+    catch(e){ return e.message==='no-client-id' ? "Add a Google OAuth Client ID in settings first." : "I couldn't reach your calendar — try reconnecting it in settings."; }
+  }
+  if(/calendar|schedule|agenda/.test(lower)){
+    try{ return await fetchTodaysEvents(); }
+    catch(e){ return e.message==='no-client-id' ? "Add a Google OAuth Client ID in settings first." : "I couldn't reach your calendar — try reconnecting it in settings."; }
+  }
+  if((m = lower.match(/add (?:an? )?event (?:called |named )?(.+?) (today|tomorrow) at ([\d: ]+\s*[ap]m)/))){
+    try{ return await createCalendarEvent(m[1].trim(), m[2], m[3].trim()); }
+    catch(e){ return e.message==='no-client-id' ? "Add a Google OAuth Client ID in settings first." : "I couldn't create that event — check your calendar connection in settings."; }
+  }
+
   // math
   if(/^(calculate|calc|what is|what's|whats)\s+[0-9]/.test(lower) || /^[0-9()][0-9+\-*/().%^\s]*$/.test(text)){
     const expr = text.replace(/^(calculate|calc|what is|what's|whats)\s+/i,'').replace(/=?\??$/,'');
@@ -628,10 +921,10 @@ async function handleCommand(raw){
 
   // identity / help / greetings / thanks
   if(/who are you|what are you/.test(lower)){
-    return "I'm JARVIS — a browser-based personal assistant. I can handle time, weather, quick math, timers, reminders, notes, and web shortcuts.";
+    return "I'm JARVIS — a browser-based personal assistant. I can handle time, weather, quick math, timers, reminders, notes, calendar, web shortcuts, and — with a Claude API key in settings — open-ended conversation.";
   }
   if(/^(help|what can you do)\b/.test(lower)){
-    return 'Try: "what time is it", "weather in Tokyo", "calculate 42*7", "set a timer for 5 minutes", "remind me to stretch in 10 minutes", "note buy milk", "show notes", "search for carbon fiber", "open github", "tell me a joke", or "call me <name>".';
+    return 'Try: "what time is it", "weather in Tokyo", "calculate 42*7", "set a timer for 5 minutes", "remind me to stretch in 10 minutes", "note buy milk", "show notes", "what\'s on my calendar", "add an event called standup tomorrow at 9am", "search for carbon fiber", "open github", "tell me a joke", "call me <name>", or say "Hey JARVIS" to activate wake-word listening. Anything else falls through to Claude if you\'ve added an API key in settings (⚙).';
   }
   if(/^(hi|hello|hey|good morning|good evening|good afternoon)\b/.test(lower)){
     const hour = new Date().getHours();
@@ -642,7 +935,13 @@ async function handleCommand(raw){
     return "Always a pleasure.";
   }
 
-  return "I'm not equipped for that yet — try “help” to see what I can do, or ask me to search the web for it.";
+  // LLM fallback — open-ended conversation via the user's own Claude API key
+  if(S.anthropicKey){
+    try{ return await askClaude(text); }
+    catch(e){ return `I couldn't reach Claude: ${e.message}`; }
+  }
+
+  return "I'm not equipped for that yet — try “help” to see what I can do, add a Claude API key in settings (⚙) for open-ended chat, or ask me to search the web for it.";
 }
 
 /* ============================================================
